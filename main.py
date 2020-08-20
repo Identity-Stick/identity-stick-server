@@ -1,3 +1,6 @@
+# This is a modification of an example for an hmac-secret extension used by Yubico AB
+# 
+#
 # Copyright (c) 2018 Yubico AB
 # All rights reserved.
 #
@@ -32,8 +35,8 @@ checks the data provided by the extension and will then receive the data.
 from __future__ import print_function, absolute_import, unicode_literals
 
 from fido2.hid import CtapHidDevice
-from client import Fido2Client
-from identity_extension import IdentityStickExtension
+from fido2_adapted.client import Fido2Client
+from fido2_adapted.identity_extension import IdentityStickExtension
 from getpass import getpass
 from binascii import b2a_hex
 from identity_data import load_key_from_url, check_sig
