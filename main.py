@@ -52,8 +52,7 @@ from Crypto.Hash import SHA256
 ####################
 """
 IDENT_ABBREVIATIONS = {"uN": "userName","n": "name", "n-f": "formatted", "n-fN": "familyName", "n-gN": "givenName", "n-mN": "middleName", "n-hP": "honoricPrefix", "n-hS": "honoricSuffix","dP": "displayName","nN": "nickName","pU": "profileUrl","t": "title","uT": "userType","pL": "preferredLanguage","l": "locale","tz": "timezone","a": "active","p": "password","e": "emails","pNs": "phoneNumbers","ims": "ims","phs": "photos","add": "addresses","gr": "groups","en": "entitlements","r": "roles","x": "x509Certificates", "g-dN": "displayname","g-m": "members","eN": "employeeNumber","cC": "costCenter","o": "organization","d": "division","dpm": "department","m": "manager","aI": "additionalInfo","bD": "birthdate"}
-
-
+KEY_URL = None 
 """
 ##################
 ###   METHODS  ###
@@ -111,7 +110,7 @@ def get_identity_data(client, wanted_data, rp, challenge, allow_list, ident_ext,
 def check_data(received_data):
     hash_val = SHA256.new(received_data['value'].encode('utf-8'))
     signature = bytes.fromhex(received_data['sign'])
-    public_key = load_key_from_url('https://gist.githubusercontent.com/JulianRoesner/e2a4877283bc5187409d79c56decdb28/raw/10cb72ac106ceb1767e1dc45679868a1a416488a/identity_stick_public_key.pem')
+    public_key = load_key_from_url(KEY_URL)
     print("Signature is checked: " + str(check_sig(public_key, hash_val, signature)))
 
 def enumerate_devices():
@@ -187,8 +186,11 @@ def main():
         pin=pin,
     )
 
-    # Show the available data on the identity stick
+    # Retrieve data from result
     ident_result = ident_ext.results_for(attestation_object.auth_data)
+    KEY_URL = ident_result['pub_key']
+
+    # Show the available data on the identity stick
     print("You have the following attributes available for access: ")
     for abbreviation in ident_result['available-data']:
         print(IDENT_ABBREVIATIONS[abbreviation])
