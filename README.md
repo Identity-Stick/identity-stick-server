@@ -11,6 +11,7 @@ Use the tool:
 ```bash
 python3 main.py
 ```
+![ttystudio GIF](./output.gif)
 
 # License
 Modified code of [python-fido2](https://github.com/Yubico/python-fido2) keeps the their [license](https://github.com/Yubico/python-fido2/blob/master/COPYING). This affects main.py and everything inside /fido2_adapted. Everything else is licensed under the MIT License.
