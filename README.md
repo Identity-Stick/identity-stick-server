@@ -1,4 +1,4 @@
-# Identit Stick Server
+# Identity Stick Server
 This is for testing the [Identity Stick](https://github.com/Identity-Stick/identity-stick). It uses [python-fido2](https://github.com/Yubico/python-fido2), but some functionality has been adapted.
 
 # Usage
