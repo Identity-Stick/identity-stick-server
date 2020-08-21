@@ -13,7 +13,7 @@ python3 main.py
 ```
 
 # License
-Modified code of [python-fido2](https://github.com/Yubico/python-fido2) keeps the their license. This affects main.py and everything inside /fido2_adapted. Everything else is licensed under the MIT License.
+Modified code of [python-fido2](https://github.com/Yubico/python-fido2) keeps the their [license](https://github.com/Yubico/python-fido2/blob/master/COPYING). This affects main.py and everything inside /fido2_adapted. Everything else is licensed under the MIT License.
 
 # Supported by
 The identity stick project is a finalist of the [PrototypeFund round 7](https://prototypefund.de/), see [our project site](https://prototypefund.de/project/identity-stick/) for details.
