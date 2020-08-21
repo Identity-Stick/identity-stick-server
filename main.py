@@ -107,10 +107,10 @@ def get_identity_data(client, wanted_data, rp, challenge, allow_list, ident_ext,
     update_progress(100)
     return received_data
 
-def check_data(received_data):
+def check_data(received_data, public_key_url):
     hash_val = SHA256.new(received_data['value'].encode('utf-8'))
     signature = bytes.fromhex(received_data['sign'])
-    public_key = load_key_from_url(KEY_URL)
+    public_key = load_key_from_url(public_key_url)
     print("Signature is checked: " + str(check_sig(public_key, hash_val, signature)))
 
 def enumerate_devices():
@@ -146,7 +146,12 @@ def get_pin(client):
         print("No pin needed")
     return pin
 
-
+def retrieve_data(type, message, up_option, key_url, rp, challenge, allow_list, ident_ext, pin, client):
+    received_data = get_identity_data(client, type, rp, challenge, allow_list, ident_ext, up_option, pin)
+    print(received_data)
+    received_data = json.loads(received_data)
+    print("\nReceived "+ message + ": " + str(received_data['value']))
+    check_data(received_data, key_url)
 """
 ###############
 ###   MAIN  ###
@@ -172,7 +177,7 @@ def main():
     # Initialize identity stick extension
     ident_ext = IdentityStickExtension(client.ctap2)
 
-    # Create a credential
+    # Check the data available on the identity stick
     if not use_nfc:
         print("\nWe want to access your identity stick to check, what information would be available.\nTouch your authenticator device now to approve this step...\n")
     attestation_object, client_data = client.make_credential(
@@ -188,12 +193,27 @@ def main():
 
     # Retrieve data from result
     ident_result = ident_ext.results_for(attestation_object.auth_data)
-    KEY_URL = ident_result['pub_key']
 
     # Show the available data on the identity stick
     print("You have the following attributes available for access: ")
     for abbreviation in ident_result['available-data']:
         print(IDENT_ABBREVIATIONS[abbreviation])
+    
+    # Get the key, if it needs to be requested seperately, do so
+    try:
+        KEY_URL = ident_result['pub_key']
+        print(KEY_URL)
+        if KEY_URL == "REQUEST":
+            received_data = get_identity_data(client, "pubkey", rp, challenge, allow_list, ident_ext, "discouraged", pin)
+            print(received_data)
+            received_data = json.loads(received_data)
+            print("\nReceived first name: " + str(received_data['value']))
+            KEY_URL = received_data['value']
+    except:
+        print("No key was transported. Trying default key")
+        KEY_URL = "https://gist.githubusercontent.com/JulianRoesner/e2a4877283bc5187409d79c56decdb28/raw/10cb72ac106ceb1767e1dc45679868a1a416488a/identity_stick_public_key.pem"
+    print(KEY_URL)
+   
 
     credential = attestation_object.auth_data.credential_data
 
@@ -208,23 +228,13 @@ def main():
 
 
     # Retrieve first name
-    received_data = get_identity_data(client, "n-fN", rp, challenge, allow_list, ident_ext, "required", pin)
-    print(received_data)
-    received_data = json.loads(received_data)
-    print("\nReceived first name: " + str(received_data['value']))
-    check_data(received_data)
-
+    retrieve_data("n-fN", "first name", "required", KEY_URL, rp, challenge, allow_list, ident_ext, pin, client)
+    
     # Retrieve last name
-    received_data = get_identity_data(client, "n-gN", rp, challenge, allow_list, ident_ext, "discouraged", pin)
-    received_data = json.loads(received_data)
-    print("\nReceived given name: " + str(received_data['value']))
-    check_data(received_data)
-
+    retrieve_data("n-gN", "given name", "discouraged", KEY_URL, rp, challenge, allow_list, ident_ext, pin, client)
+    
     # Retrieve birthdate
-    received_data = get_identity_data(client, "bD", rp, challenge, allow_list, ident_ext, "discouraged", pin)
-    received_data = json.loads(received_data)
-    print("\nReceived birthdate: " + str(received_data['value']))
-    check_data(received_data)    
+    retrieve_data("bD", "birthdate", "discouraged", KEY_URL, rp, challenge, allow_list, ident_ext, pin)      
 
 if __name__ == "__main__":
     main()
