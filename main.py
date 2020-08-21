@@ -53,6 +53,7 @@ from Crypto.Hash import SHA256
 """
 IDENT_ABBREVIATIONS = {"uN": "userName","n": "name", "n-f": "formatted", "n-fN": "familyName", "n-gN": "givenName", "n-mN": "middleName", "n-hP": "honoricPrefix", "n-hS": "honoricSuffix","dP": "displayName","nN": "nickName","pU": "profileUrl","t": "title","uT": "userType","pL": "preferredLanguage","l": "locale","tz": "timezone","a": "active","p": "password","e": "emails","pNs": "phoneNumbers","ims": "ims","phs": "photos","add": "addresses","gr": "groups","en": "entitlements","r": "roles","x": "x509Certificates", "g-dN": "displayname","g-m": "members","eN": "employeeNumber","cC": "costCenter","o": "organization","d": "division","dpm": "department","m": "manager","aI": "additionalInfo","bD": "birthdate"}
 KEY_URL = None 
+DEFAULT_KEY_URL = "<SET A DEFAULT URL HERE>"
 """
 ##################
 ###   METHODS  ###
@@ -146,8 +147,12 @@ def get_pin(client):
         print("No pin needed")
     return pin
 
-def retrieve_data(type, message, up_option, key_url, rp, challenge, allow_list, ident_ext, pin, client):
-    received_data = get_identity_data(client, type, rp, challenge, allow_list, ident_ext, up_option, pin)
+def retrieve_data(req_attribute, message, up_option, key_url, rp, challenge, allow_list, ident_ext, pin, client, use_nfc):
+    # Authenticate the credential
+    if not use_nfc and up_option == "required":
+        print("\nWe are now accessing your " + message + ". Touch your authenticator device now to authenticate that process...\n")
+
+    received_data = get_identity_data(client, req_attribute, rp, challenge, allow_list, ident_ext, up_option, pin)
     print(received_data)
     received_data = json.loads(received_data)
     print("\nReceived "+ message + ": " + str(received_data['value']))
@@ -199,42 +204,37 @@ def main():
     for abbreviation in ident_result['available-data']:
         print(IDENT_ABBREVIATIONS[abbreviation])
     
-    # Get the key, if it needs to be requested seperately, do so
-    try:
-        KEY_URL = ident_result['pub_key']
-        print(KEY_URL)
-        if KEY_URL == "REQUEST":
-            received_data = get_identity_data(client, "pubkey", rp, challenge, allow_list, ident_ext, "discouraged", pin)
-            print(received_data)
-            received_data = json.loads(received_data)
-            print("\nReceived first name: " + str(received_data['value']))
-            KEY_URL = received_data['value']
-    except:
-        print("No key was transported. Trying default key")
-        KEY_URL = "https://gist.githubusercontent.com/JulianRoesner/e2a4877283bc5187409d79c56decdb28/raw/10cb72ac106ceb1767e1dc45679868a1a416488a/identity_stick_public_key.pem"
-    print(KEY_URL)
-   
-
-    credential = attestation_object.auth_data.credential_data
-
     # Prepare parameters for getAssertion
+    credential = attestation_object.auth_data.credential_data
     challenge = b"Q0hBTExFTkdF"  # Use a new challenge for each call.
     allow_list = [{"type": "public-key", "id": credential.credential_id}]
 
+    # Get the key, if it needs to be requested seperately, do so
+    try:
+        KEY_URL = ident_result['pub_key']
+        if KEY_URL == "REQUEST":
+            if not use_nfc:
+                print("\nWe are now accessing the publickey. Touch your authenticator device now to authenticate that process...\n")
 
-    # Authenticate the credential
-    if not use_nfc:
-        print("\nWe are now accessing your data. Touch your authenticator device now to authenticate that process...\n")
-
+            received_data = get_identity_data(client, "pubkey", rp, challenge, allow_list, ident_ext, "required", pin)
+            received_data = json.loads(received_data)
+            KEY_URL = received_data['value']
+            print("Received key:")
+    except:
+        print("No key was transported. Trying default key:")
+        KEY_URL = DEFAULT_KEY_URL
+    
+    print(KEY_URL)
+   
 
     # Retrieve first name
-    retrieve_data("n-fN", "first name", "required", KEY_URL, rp, challenge, allow_list, ident_ext, pin, client)
+    retrieve_data("n-fN", "first name", "required", KEY_URL, rp, challenge, allow_list, ident_ext, pin, client, use_nfc)
     
     # Retrieve last name
-    retrieve_data("n-gN", "given name", "discouraged", KEY_URL, rp, challenge, allow_list, ident_ext, pin, client)
+    retrieve_data("n-gN", "given name", "required", KEY_URL, rp, challenge, allow_list, ident_ext, pin, client, use_nfc)
     
     # Retrieve birthdate
-    retrieve_data("bD", "birthdate", "discouraged", KEY_URL, rp, challenge, allow_list, ident_ext, pin)      
+    retrieve_data("bD", "birthdate", "required", KEY_URL, rp, challenge, allow_list, ident_ext, pin, client, use_nfc)
 
 if __name__ == "__main__":
     main()
